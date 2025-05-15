@@ -237,21 +237,30 @@ export class StreamingDelegate implements CameraStreamingDelegate {
         }
       }
 
-      const useSeparateProcesses = this.videoConfig.useSeparateProcesses ??= false;
+    const videoProcess = new FFmpeg(
+      `[Video Process]`,
+      !useSeparateProcesses && audioParams ? [videoParams, audioParams] : videoParams,
+    );
+-   videoProcess.on('started', () => {
+-     callback();
+-   });
++   videoProcess.on('started', () => {
++     callback();
++     // ─── START PATCH: force Active=true ───
++     const camSvc = this.camera.getService(HAP.Service.CameraControl);
++     if (camSvc) {
++       camSvc.updateCharacteristic(
++         HAP.Characteristic.Active,
++         HAP.Characteristic.Active.ACTIVE
++       );
++     }
++     // ─── END PATCH ───
++   });
+    videoProcess.on('error', (error) => {
+      this.log.error('Video process ended with error: ' + error);
+      this.stopStream(request.sessionID);
+    });
 
-      const videoProcess = new FFmpeg(
-        `[Video Process]`,
-        !useSeparateProcesses && audioParams ? [videoParams, audioParams] : videoParams,
-      );
-      videoProcess.on('started', () => {
-        callback();
-      });
-      videoProcess.on('error', (error) => {
-        this.log.error('Video process ended with error: ' + error);
-        this.stopStream(request.sessionID);
-      });
-      activeSession.videoProcess = videoProcess;
-      activeSession.videoProcess.start();
 
       if (useSeparateProcesses && audioParams) {
         const audioProcess = new FFmpeg(
