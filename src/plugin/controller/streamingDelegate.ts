@@ -244,7 +244,7 @@ export class StreamingDelegate implements CameraStreamingDelegate {
     videoProcess.on('started', () => {
       callback();
       // ─── START PATCH: force Active=true ───
-      const camSvc = this.camera.getService(HAP.Service.CameraControl);
+      const camSvc = this.camera.getService(HAP.Service.CameraRTPStreamManagement);
       if (camSvc) {
         camSvc.updateCharacteristic(
           HAP.Characteristic.Active,
